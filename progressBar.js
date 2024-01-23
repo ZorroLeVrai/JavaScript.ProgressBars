@@ -4,10 +4,14 @@ const ONE_MINUTE_IN_MS = 60_000;
 const ONE_SECOND_IN_MS = 1_000;
 
 class Progress {
-  constructor(startDT, endDT, bounded = false) {
+  constructor({startDT,
+      endDT,
+      maxValue = 100,
+      bounded = false}) {
     this.startDT = startDT;
     this.endDT = endDT;
     this.wholePeriod = this.endDT - this.startDT;
+    this.maxValue = maxValue;
     this.bounded = bounded;
   }
 
@@ -19,7 +23,7 @@ class Progress {
       else if (result > 1)
         result = 1;
     }
-    return 100*result;
+    return this.maxValue*result;
 
     function getRatio(self) {
       const currentDT = new Date();
@@ -34,9 +38,21 @@ class Progress {
 }
 
 class ProgressBar {
-  constructor(title, startDT, endDT, nbDecimals = 2, bounded = false, displayPeriodRatio = true, prefixPeriodRatio = "1‰:", periodRatio = 1/1000) {
+  constructor({
+      title,
+      startDT,
+      endDT,
+      maxValue = 100,
+      valueSign = "%",
+      nbDecimals = 2,
+      bounded = false,
+      displayPeriodRatio = true,
+      prefixPeriodRatio = "1‰:",
+      periodRatio = 1/1000}) {
     this.title = title;
-    this.progress = new Progress(startDT, endDT, bounded);
+    this.progress = new Progress({startDT, endDT, maxValue, bounded});
+    this.maxValue = maxValue;
+    this.valueSign = valueSign;
     this.nbDecimals = nbDecimals;
     this.displayPeriodRatio = displayPeriodRatio;
     this.prefixPeriodRatio = prefixPeriodRatio;
@@ -86,7 +102,7 @@ class ProgressBar {
     // Create progress element
     this.progressBarElement = document.createElement("progress");
     this.progressBarElement.className = "pg-bar w-100";
-    this.progressBarElement.max = 100;    
+    this.progressBarElement.max = this.maxValue;    
 
     // Create span inside the second span
     this.progressBarTextElement = document.createElement("span");
@@ -101,10 +117,17 @@ class ProgressBar {
     this.updateProgress();
   }
 
+  truncateFixedNumber(num, nbDecimals) {
+    const strNum = num.toString();
+    const pointIndex = strNum.indexOf(".");    
+    return nbDecimals ? strNum.substring(0, pointIndex + nbDecimals + 1) : strNum.substring(0, pointIndex + nbDecimals);
+  }
+
   updateProgress() {
     const currentProgressValue = this.progress.getProgress();
     this.progressBarElement.value = currentProgressValue;
-    this.progressBarTextElement.textContent = `${currentProgressValue.toFixed(this.nbDecimals)}%`;
+    //this.progressBarTextElement.textContent = `${currentProgressValue.toFixed(this.nbDecimals)}${this.valueSign}`;
+    this.progressBarTextElement.textContent = `${this.truncateFixedNumber(currentProgressValue, this.nbDecimals)}${this.valueSign}`;
   }
 
   showProgressBar(show) {
@@ -121,6 +144,9 @@ class ProgressBarContainer {
   constructor({
       pgContainerId,
       showPgBar = true,
+      maxValue = 100,
+      valueSign = "%",
+      nbDecimals = 2,
       pgBarBounded = false,
       displayPeriodRatio = true,
       prefixPeriodRatio = "1‰:",
@@ -131,6 +157,9 @@ class ProgressBarContainer {
     this.hideShowButton = this.createHideShowButton();
     this.pgNavContainer = this.createNavElement(pgContainerElement, this.hideShowButton);
     this.showPgBar = showPgBar;
+    this.maxValue = maxValue;
+    this.valueSign = valueSign;
+    this.nbDecimals = nbDecimals;
     this.pgBarBounded = pgBarBounded;
     this.displayPeriodRatio = displayPeriodRatio;
     this.prefixPeriodRatio = prefixPeriodRatio;
@@ -168,8 +197,24 @@ class ProgressBarContainer {
     return pgNav;
   }
 
-  addProgressBar(title, startDT, endDT, nbDecimals = 2) {
-    const pgBar = new ProgressBar(title, startDT, endDT, nbDecimals, this.pgBarBounded, this.displayPeriodRatio, this.prefixPeriodRatio, this.periodRatio);
+  addProgressBar({title, startDT, endDT, nbDecimals = null, maxValue = null, valueSign = null}) {
+    if (nbDecimals === null)
+      nbDecimals = this.nbDecimals;
+    if (maxValue === null)
+      maxValue = this.maxValue;
+    if (valueSign === null)
+      valueSign = this.valueSign;
+
+    const pgBar = new ProgressBar({title, 
+      startDT, 
+      endDT,
+      maxValue: maxValue,
+      valueSign: valueSign,
+      nbDecimals,
+      bounded: this.pgBarBounded,
+      displayPeriodRatio: this.displayPeriodRatio,
+      prefixPeriodRatio: this.prefixPeriodRatio,
+      periodRatio: this.periodRatio});
     this.progressBarLst.push(pgBar);
     pgBar.addProgressElement(this.pgNavContainer);
   }
@@ -194,4 +239,8 @@ class ProgressBarContainer {
     this.hideShowProgressBars();
     this.startUpdateInterval();
   }
+}
+
+function addTime(date, {nbDays = 0, nbHours = 0, nbMinutes = 0, nbSeconds = 0}) {
+  return new Date(date.valueOf() + nbDays * 86_400_000 + nbHours * 3_600_000 + nbMinutes * 60_000 + nbSeconds * 1_000);
 }

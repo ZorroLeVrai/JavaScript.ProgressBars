@@ -11,7 +11,14 @@ const pgBarParameters = {
   updateIntervalInMs: 100
 };
 
+function getMinutePgBarDateTime() {
+  const minuteStart = new Date();
+  minuteStart.setHours(minuteStart.getHours(), minuteStart.getMinutes(),0,0);
+  const minuteEnd = addTime(minuteStart, {nbMinutes: 1});
+  return [minuteStart, minuteEnd];
+}
+
 const pgBarContainer = new ProgressBarContainer(pgBarParameters);
-pgBarContainer.addProgressBar({title:"AA", startDT: new Date(2024,0,23,0,0,0), endDT: new Date(2024,0,24,0,0,0), nbDecimals: 4});
-pgBarContainer.addProgressBar({title:"BBBBBBBBBBBB", startDT: new Date(2024,0,23,0,0,0), endDT: new Date(2024,0,24,0,0,0), nbDecimals: 2});
+pgBarContainer.addProgressBar({title:"Day", getDateTime: () => [new Date(2024,0,23,0,0,0), new Date(2024,0,24,0,0,0)], nbDecimals: 4});
+pgBarContainer.addProgressBar({title:"Minute", getDateTime: getMinutePgBarDateTime, nbDecimals: 2, reloadProgress: true});
 pgBarContainer.start();

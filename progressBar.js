@@ -4,19 +4,32 @@ const ONE_MINUTE_IN_MS = 60_000;
 const ONE_SECOND_IN_MS = 1_000;
 
 class Progress {
-  constructor({startDT,
-      endDT,
+  constructor({getDateTime,
       maxValue = 100,
+      reloadProgress = false,
       bounded = false}) {
+    this.getDateTime = getDateTime;
+    this.maxValue = maxValue;
+    this.reloadProgress = reloadProgress;
+    this.bounded = bounded;
+
+    this.updateStartEndDT();
+  }
+
+  updateStartEndDT() {
+    const [startDT, endDT] = this.getDateTime();
     this.startDT = startDT;
     this.endDT = endDT;
     this.wholePeriod = this.endDT - this.startDT;
-    this.maxValue = maxValue;
-    this.bounded = bounded;
   }
 
   getProgress() {
     let result = getRatio(this);
+    if (this.reloadProgress && result >= 1) {
+      this.updateStartEndDT();
+      result = getRatio(this);
+    }
+
     if (this.bounded) {
       if (result < 0)
         result = 0;
@@ -40,17 +53,17 @@ class Progress {
 class ProgressBar {
   constructor({
       title,
-      startDT,
-      endDT,
+      getDateTime,
       maxValue = 100,
       valueSign = "%",
       nbDecimals = 2,
+      reloadProgress = false,
       bounded = false,
       displayPeriodRatio = true,
       prefixPeriodRatio = "1‰:",
       periodRatio = 1/1000}) {
     this.title = title;
-    this.progress = new Progress({startDT, endDT, maxValue, bounded});
+    this.progress = new Progress({getDateTime, maxValue, reloadProgress, bounded});
     this.maxValue = maxValue;
     this.valueSign = valueSign;
     this.nbDecimals = nbDecimals;
@@ -147,6 +160,7 @@ class ProgressBarContainer {
       maxValue = 100,
       valueSign = "%",
       nbDecimals = 2,
+      reloadProgress = false,
       pgBarBounded = false,
       displayPeriodRatio = true,
       prefixPeriodRatio = "1‰:",
@@ -160,6 +174,7 @@ class ProgressBarContainer {
     this.maxValue = maxValue;
     this.valueSign = valueSign;
     this.nbDecimals = nbDecimals;
+    this.reloadProgress = reloadProgress;
     this.pgBarBounded = pgBarBounded;
     this.displayPeriodRatio = displayPeriodRatio;
     this.prefixPeriodRatio = prefixPeriodRatio;
@@ -197,20 +212,22 @@ class ProgressBarContainer {
     return pgNav;
   }
 
-  addProgressBar({title, startDT, endDT, nbDecimals = null, maxValue = null, valueSign = null}) {
+  addProgressBar({title, getDateTime, nbDecimals = null, reloadProgress = null, maxValue = null, valueSign = null}) {
     if (nbDecimals === null)
       nbDecimals = this.nbDecimals;
+    if (reloadProgress === null)
+      reloadProgress = this.reloadProgress;
     if (maxValue === null)
       maxValue = this.maxValue;
     if (valueSign === null)
       valueSign = this.valueSign;
 
     const pgBar = new ProgressBar({title, 
-      startDT, 
-      endDT,
+      getDateTime,
       maxValue: maxValue,
       valueSign: valueSign,
       nbDecimals,
+      reloadProgress: reloadProgress,
       bounded: this.pgBarBounded,
       displayPeriodRatio: this.displayPeriodRatio,
       prefixPeriodRatio: this.prefixPeriodRatio,

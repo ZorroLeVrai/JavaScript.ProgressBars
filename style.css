@@ -6,6 +6,10 @@
   font-size: 0.7rem;
 }
 
+.large-font {
+  font-size: 1.5rem;
+}
+
 .align-center {
   align-items: center;
 }
